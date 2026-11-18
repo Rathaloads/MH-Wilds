@@ -1,0 +1,55 @@
+@use 'sass:map';
+@use './variables' as *;
+
+/// 水平垂直居中布局
+/// @param {String} $direction 主轴方向
+/// @param {Number} $gap 子元素间距
+@mixin flex-center($direction: row, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  align-items: center;
+  justify-content: center;
+
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+/// 单行 / 多行文本省略
+/// @param {Number} $lines 显示行数
+@mixin text-ellipsis($lines: 1) {
+  overflow: hidden;
+
+  @if $lines == 1 {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+  }
+}
+
+/// 响应式断点（max-width 向下适配）
+/// @param {String} $breakpoint sm | md | lg | xl
+@mixin respond-to($breakpoint) {
+  $width: map.get($breakpoints, $breakpoint);
+
+  @if $width == null {
+    @error '未知断点 `#{$breakpoint}`，可用值：#{map.keys($breakpoints)}';
+  }
+
+  @media (max-width: $width) {
+    @content;
+  }
+}
+
+/// 卡片表面
+/// @param {Number} $padding 内边距
+@mixin card-surface($padding: $spacing-md) {
+  padding: $padding;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-bg-white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}

@@ -1,0 +1,20 @@
+# 依赖与构建产物
+node_modules
+dist
+dist-ssr
+coverage
+
+# 锁文件与日志
+pnpm-lock.yaml
+*.log
+
+# 静态资源（图标等无需格式化）
+public
+
+# 自动生成
+*.min.js
+*.min.css
+
+# 第三方 Agent Skills（保持上游原样，不参与格式化）
+.agents/skills
+.dsh
