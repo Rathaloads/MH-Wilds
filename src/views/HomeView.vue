@@ -6,7 +6,6 @@ import { ElMessage } from 'element-plus'
 
 import AutoBuildDrawer from '@/components/autobuild/AutoBuildDrawer.vue'
 import SkillRequirementPicker from '@/components/autobuild/SkillRequirementPicker.vue'
-import DataSourceSwitch from '@/components/common/DataSourceSwitch.vue'
 import { useMhWildsData } from '@/composables/useMhWildsData'
 import { useLoadoutDraftStore } from '@/stores/loadout-draft'
 import {
@@ -23,11 +22,12 @@ import type {
 } from '@/types/auto-build'
 import type { SkillCategory, WeaponType } from '@/types/mh-wilds'
 import { autoBuildCandidates } from '@/utils/auto-build'
+import { captureEquipmentSnapshot } from '@/utils/loadout-snapshot'
 import { formatSkillMap, formatSlotLabel } from '@/utils/mh-format'
 
 const router = useRouter()
 const draftStore = useLoadoutDraftStore()
-const { data, error, loading, load, source } = useMhWildsData()
+const { data, error, loading, load } = useMhWildsData()
 
 /** 目标技能：技能名 → 目标等级 */
 const requirements = reactive<Record<string, number>>({})
@@ -186,13 +186,6 @@ watch(rankScope, () => {
   if (candidates.value.length || drawerVisible.value) invalidateResults()
 })
 
-// 切换数据源后清空目标与结果（两套数据的技能名 / 装备下标不通用）
-watch(source, () => {
-  specifiedWeaponIndex.value = null
-  for (const name of Object.keys(requirements)) delete requirements[name]
-  invalidateResults()
-})
-
 async function runAutoBuild(): Promise<void> {
   const currentData = data.value
   const type = weaponType.value
@@ -233,7 +226,11 @@ async function runAutoBuild(): Promise<void> {
 }
 
 function editCandidate(candidate: AutoBuildCandidate): void {
-  draftStore.setPending(candidate.selection, source.value)
+  const currentData = data.value
+  const members = currentData
+    ? captureEquipmentSnapshot(currentData, candidate.selection)
+    : undefined
+  draftStore.setPending(candidate.selection, members)
   drawerVisible.value = false
   void router.push({ name: 'builder' })
 }
@@ -303,7 +300,6 @@ onMounted(() => {
           顶部选择武器类型（可进一步指定具体武器），中间为全部目标技能（按类别归集），底部点击「自动配装」查看所有符合的配装
         </p>
       </div>
-      <DataSourceSwitch />
     </header>
 
     <el-alert
@@ -318,11 +314,7 @@ onMounted(() => {
 
     <div v-else-if="!data" class="auto-build__loading">
       <p class="auto-build__loading-text">
-        {{
-          loading
-            ? `正在加载${source === 'online' ? '在线数据（首次约数秒）' : '本地数据'}…`
-            : '正在准备数据…'
-        }}
+        {{ loading ? '正在加载配装数据…' : '正在准备数据…' }}
       </p>
       <el-skeleton :rows="8" animated />
     </div>

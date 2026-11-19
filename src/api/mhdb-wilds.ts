@@ -1,8 +1,11 @@
 import type { ArmorSlotLabel, MhArmor, MhWildsData, SkillCategory } from '@/types/mh-wilds'
 
 /**
- * 在线数据源适配器：把 https://wilds.mhdb.io 的 API 响应映射为项目内部的
- * `MhWildsData` 模型，使配装器与自动配装无需感知数据来源差异。
+ * 在线数据适配器：把 https://wilds.mhdb.io 的 API 响应映射为项目内部的
+ * `MhWildsData` 模型。
+ *
+ * 主要供 `scripts/sync-mh-wilds.mjs` 同步本地快照时使用；应用运行时只读取
+ * `public/mh-wilds.json`，不再直接请求在线 API。
  *
  * 使用的端点（locale = zh-Hans，均通过 `p` 参数做字段投影以减小体积）：
  * - /skills
@@ -136,9 +139,7 @@ async function fetchCollection<T>(path: string, projection: Record<string, unkno
     try {
       response = await fetch(url)
     } catch {
-      throw new Error(
-        `在线数据请求失败（${path}）：无法连接 wilds.mhdb.io，请检查网络后重试，或切换到本地数据源`,
-      )
+      throw new Error(`在线数据请求失败（${path}）：无法连接 wilds.mhdb.io，请检查网络后重试`)
     }
 
     if (!response.ok) {

@@ -17,6 +17,11 @@ const scripts = [
     command: 'pnpm dev',
     description: '启动开发服务器（默认 http://localhost:5173）',
   },
+  {
+    name: 'sync:data',
+    command: 'pnpm sync:data',
+    description: '从 wilds.mhdb.io 拉取数据并覆盖本地 mh-wilds.json（需联网）',
+  },
   { name: 'build', command: 'pnpm build', description: 'vue-tsc 类型检查 + 生产构建' },
   { name: 'preview', command: 'pnpm preview', description: '本地预览构建产物' },
   { name: 'type-check', command: 'pnpm type-check', description: '仅执行类型检查' },

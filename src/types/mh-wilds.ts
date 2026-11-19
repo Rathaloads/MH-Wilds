@@ -2,8 +2,8 @@
  * Monster Hunter Wilds 静态数据源类型定义。
  *
  * 数据文件：`public/mh-wilds.json`（运行时通过 `/mh-wilds.json` 访问）
- * 数据来源：由 `pnpm sync:data` 从 wilds.mhdb.io 同步生成的本地快照，
- * 与在线数据源使用同一适配器（`src/api/mhdb-wilds.ts`）转换，字段完全一致。
+ * 数据来源：由 `pnpm sync:data` 从 wilds.mhdb.io 拉取生成的本地快照，
+ * 使用同一适配器（`src/api/mhdb-wilds.ts`）转换（适配器仅供同步脚本使用）。
  *
  * 说明：字段取值（武器类型、技能类别等）基于当前数据版本，如数据升级后出现新值，
  * 需同步更新本文件中的字面量联合类型。

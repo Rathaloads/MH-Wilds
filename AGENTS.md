@@ -16,7 +16,7 @@ MonsterHunter 是一个 Vue 3 前端项目：
   - 自动配装首页 `/`：顶部武器类型（可在同类型下指定具体武器，留空自动挑选）+ 装备范围（不限 / 优先上位 / 优先下位，武器与防具同范围）+ 中部全部技能平铺 + 底部按钮，结果用抽屉（`src/components/autobuild/AutoBuildDrawer.vue`）按综合评分降序列出前 20 套；算法 `autoBuildCandidates`（beam search + 攻击力 / 防御力 / 技能完整度 / 技能等级四维评分）在 `src/utils/auto-build.ts`，UI 在 `src/components/autobuild/`，结果通过 `src/stores/loadout-draft.ts` 交接给配装器；
   - 配装器 `/builder`：页面 `src/views/BuilderView.vue`，计算核心 `src/composables/useLoadout.ts`，存档 `src/stores/builds.ts`，UI 组件在 `src/components/builder/`；装备卡片可打开详情弹窗（`EquipmentDetailDialog.vue`），配装合计（`SkillSummaryPanel.vue`）展示武器攻击力、各部位防御力与技能/系列/组技能；
   - 技能 / 孔位 / 系列组规则统一维护在 `src/utils/loadout-calc.ts`（两个页面共用），不要在页面里重复实现规则。
-  - 数据源：本地 `public/mh-wilds.json`（由 `pnpm sync:data` 从在线同步的快照，武器带 `rarity`、防具带 `rank`）与在线 wilds.mhdb.io 在线适配（`src/api/mhdb-wilds.ts`）都转换为同一个 `MhWildsData` 模型；切换状态在 `src/stores/data-source.ts`，按数据源缓存与加载在 `src/composables/useMhWildsData.ts`。配装存档与自动配装交接都带 `source`，跨数据源不可混用。
+  - 数据源：项目只有一份配装数据 `public/mh-wilds.json`（由 `pnpm sync:data` 从 wilds.mhdb.io 拉取生成）；运行时通过 `src/api/mh-wilds.ts` 的 `loadMhWildsData()` 读取，不再有本地/在线数据源切换，也不在运行时代理线上 API。`src/api/mhdb-wilds.ts` 适配器仅供同步脚本使用。配装存档与自动配装交接带装备名称快照（`src/utils/loadout-snapshot.ts`），数据更新后按名称还原。
 
 常用命令：
 

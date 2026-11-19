@@ -1,5 +1,4 @@
 import type { ArmorPart, DataRank, SkillCategory, SkillLevelMap } from './mh-wilds'
-import type { DataSource } from './data-source'
 
 /** 孔位所属装备类型 */
 export type SlotOwner = 'weapon' | 'armor' | 'talisman'
@@ -125,14 +124,23 @@ export interface DecorationOption {
   skills: SkillLevelMap
 }
 
+/** 装备名称快照：用于数据重新同步（数组顺序 / 内容变化）后按名称还原配装 */
+export interface EquipmentSnapshot {
+  weapon: string | null
+  armors: Record<ArmorPart, string | null>
+  talisman: string | null
+  /** 槽位 id → 装饰品名称 */
+  decorations: Record<string, string>
+}
+
 /** 已保存的配装 */
 export interface SavedBuild {
   id: string
   name: string
   createdAt: number
   selection: LoadoutSelection
-  /** 保存时使用的数据源；旧存档缺省按本地数据源处理 */
-  dataSource?: DataSource
+  /** 保存时的装备名称快照（用于数据更新后按名称还原） */
+  members?: EquipmentSnapshot
 }
 
 /** 装备卡片展示数据 */

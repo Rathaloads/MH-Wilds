@@ -31,15 +31,15 @@ pnpm dev
 
 ## 常用脚本
 
-| 命令                | 说明                                                    |
-| ------------------- | ------------------------------------------------------- |
-| `pnpm dev`          | 启动开发服务器                                          |
-| `pnpm build`        | `vue-tsc -b` 类型检查 + `vite build`                    |
-| `pnpm preview`      | 预览生产构建产物                                        |
-| `pnpm type-check`   | 仅执行类型检查                                          |
-| `pnpm format`       | Prettier 格式化全部文件                                 |
-| `pnpm format:check` | 仅校验格式，适合接入 CI / 提交前检查                    |
-| `pnpm sync:data`    | 从在线数据源同步 `public/mh-wilds.json`（需联网，见下） |
+| 命令                | 说明                                                             |
+| ------------------- | ---------------------------------------------------------------- |
+| `pnpm dev`          | 启动开发服务器                                                   |
+| `pnpm build`        | `vue-tsc -b` 类型检查 + `vite build`                             |
+| `pnpm preview`      | 预览生产构建产物                                                 |
+| `pnpm type-check`   | 仅执行类型检查                                                   |
+| `pnpm format`       | Prettier 格式化全部文件                                          |
+| `pnpm format:check` | 仅校验格式，适合接入 CI / 提交前检查                             |
+| `pnpm sync:data`    | 从 wilds.mhdb.io 拉取数据并覆盖 `public/mh-wilds.json`（需联网） |
 
 ## 目录结构
 
@@ -50,13 +50,13 @@ pnpm dev
 ├── scripts/
 │   └── sync-mh-wilds.mjs   # 在线数据 → 本地快照同步脚本（pnpm sync:data）
 ├── src/
-│   ├── api/                # 数据加载（mh-wilds.ts 本地 JSON / mhdb-wilds.ts 在线适配）
+│   ├── api/                # 数据加载（mh-wilds.ts 读本地 JSON；mhdb-wilds.ts 供同步脚本使用）
 │   ├── components/         # 组件（builder/ 配装器，autobuild/ 自动配装，common/ 通用）
 │   ├── composables/        # 组合式逻辑（useLoadout 配装计算 / useMhWildsData 数据加载）
 │   ├── router/             # 路由表（懒加载 + meta）
-│   ├── stores/             # Pinia 仓库（builds 存档 / data-source 数据源 / loadout-draft 交接）
+│   ├── stores/             # Pinia 仓库（builds 存档 / loadout-draft 交接）
 │   ├── styles/             # SCSS：variables / mixins / reset / index
-│   ├── types/              # 类型声明与数据模型（mh-wilds / build / auto-build / data-source）
+│   ├── types/              # 类型声明与数据模型（mh-wilds / build / auto-build）
 │   ├── utils/              # 纯函数（mh-format / loadout-calc 规则 / auto-build 算法）
 │   ├── views/              # 页面级组件（HomeView 自动配装 / BuilderView 配装器）
 │   ├── App.vue             # 应用外壳（页头 / 路由视图 / 页脚）
@@ -120,11 +120,11 @@ pnpm dev
 - 包管理器版本固定为 pnpm 11（`package.json` 的 `packageManager` 字段），Node 要求 `>= 20.19.0`。
 - pnpm 11 默认拦截依赖的安装脚本，`pnpm-workspace.yaml` 的 `allowBuilds` 已放行 UnoCSS 依赖链中的 `@parcel/watcher`；后续新增依赖若需要执行构建脚本，运行 `pnpm approve-builds` 更新白名单即可。
 
-### 8. 数据源与类型
+### 8. 数据文件与加载
 
-- 数据文件：`public/mh-wilds.json`（**由 `pnpm sync:data` 从 wilds.mhdb.io 同步生成的本地快照**，当前版本 `2026-04-15T01:28:18+00:00`，约 390 KB）。运行时通过 `/mh-wilds.json` 访问，构建时原样复制到 `dist/`；不再手工维护，需要更新数据时重新运行同步脚本即可。
-- 同步脚本：`scripts/sync-mh-wilds.mjs` 通过 Vite 的 SSR 模块加载器复用 `src/api/mhdb-wilds.ts` 的在线适配器（唯一映射实现），写入前会校验数量与上下位字段，校验失败时保留旧文件。
-- 类型定义：`src/types/mh-wilds.ts`，包含根结构 `MhWildsData` 与 `MhWeapon`、`MhSkill`、`MhDecoration`、`MhArmor`、`MhTalisman` 等模型。武器带 `rarity`（1–8）、防具带 `rank`（`low`/`high`），按数据源规则稀有度 ≤4 为下位、≥5 为上位。
+- 数据文件：`public/mh-wilds.json`（**由 `pnpm sync:data` 从 wilds.mhdb.io 拉取全部数据后生成的本地快照**，当前版本 `2026-04-15T01:28:18+00:00`，约 390 KB）。运行时通过 `/mh-wilds.json` 访问，构建时原样复制到 `dist/`；项目只读取这一份 JSON，不提供本地 / 在线数据源切换，也不在运行时代理线上 API。
+- 同步脚本：`scripts/sync-mh-wilds.mjs` 通过 Vite 的 SSR 模块加载器复用 `src/api/mhdb-wilds.ts` 的在线适配器（唯一映射实现），写入前会校验数量与上下位字段，校验失败时保留旧文件。**需要更新数据时手动运行 `pnpm sync:data`，刷新页面即可。**
+- 类型定义：`src/types/mh-wilds.ts`，包含根结构 `MhWildsData` 与 `MhWeapon`、`MhSkill`、`MhDecoration`、`MhArmor`、`MhTalisman` 等模型。武器带 `rarity`（1–8）、防具带 `rank`（`low`/`high`），按 wilds.mhdb.io 的规则稀有度 ≤4 为下位、≥5 为上位。
 - 加载器：`src/api/mh-wilds.ts` 的 `loadMhWildsData()`，带内存缓存（并发调用只请求一次）、请求失败自动清空缓存；`clearMhWildsDataCache()` 用于强制刷新。
 
 ```ts
@@ -147,7 +147,7 @@ const greatSwords = data.weapons.filter((weapon) => weapon.type === '大剑')
 
 页面为上下三段布局：**顶部选择武器类型**（可在同类型下进一步指定具体武器，留空则由算法自动挑选）、**装备范围**（不限 / 优先上位 / 优先下位，武器与防具都按该范围筛选；指定武器时范围自动跟随该武器并禁用切换），**中部平铺全部可获取技能**（按武器 / 防具 / 系列 / 组技能归集，每个技能直接选择目标等级：0 = 未选，系列上限 2、组上限 1、其他取数据上限；支持按名称搜索过滤），**底部固定「自动配装」按钮**。
 
-点击后打开抽屉，按**综合评分从高到低**展示前 20 套配装（同分再比较完全符合 / 技能满足数 / 等级达成 / 防御力）。摘要会提示完全符合目标的套数，但不再强制「完全符合优先」。每套卡片显示综合评分、防御力与技能达成，可展开完整详情（含评分分项）、复制文本（含装备 / 珠子 / 技能）或一键「载入配装器」继续微调。指定具体武器时只围绕该武器搜索（适用于「根据手里的武器反推配装」）。
+点击后打开抽屉，按**综合评分从高到低**展示前 20 套配装（同分再比较完全符合 / 技能满足数 / 等级达成 / 防御力）。摘要会提示完全符合目标的套数，但不再强制「完全符合优先」。每套卡片显示综合评分、防御力与技能达成，可展开完整详情（含评分分项）、复制文本（含装备 / 珠子 / 技能）或一键「载入配装器」继续微调（数据更新后会按装备名称自动还原）。指定具体武器时只围绕该武器搜索（适用于「根据手里的武器反推配装」）。
 
 **算法**（`src/utils/auto-build.ts` 的 `autoBuildCandidates`，纯函数）：
 
@@ -161,24 +161,17 @@ const greatSwords = data.weapons.filter((weapon) => weapon.type === '大剑')
 
 说明：技能 / 孔位 / 系列组规则统一在 `src/utils/loadout-calc.ts` 维护（配装器与自动配装共用）；系列 / 组技能的实际上限由该文件统一计算（系列 2 件 Lv1 / 4 件 Lv2、组技能 3 件生效），数据中的 `max` 仅作参考。
 
-## 数据源（本地 / 在线）
+## 数据来源与同步
 
-首页与配装器工具栏右上角都提供「本地数据 / 在线数据」切换，偏好保存在 localStorage（`mh-wilds:data-source`），刷新后保留。切换数据源会立即加载对应数据并清空当前配装（两套数据的装备下标不通用）。
+项目只有一份配装数据：`public/mh-wilds.json`（构建后为 `dist/mh-wilds.json`），运行时通过 `loadMhWildsData()` 读取，不再有「本地 / 在线」切换，也不会在运行时代理线上 API。
 
-| 数据源   | 来源                                                                    | 规模（当前）                                                                                                    |
-| -------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| 本地数据 | 内置 `public/mh-wilds.json`（由 `pnpm sync:data` 从在线同步的本地快照） | 1188 武器 / 179 技能 / 714 防具 / 361 装饰品 / 183 护石                                                         |
-| 在线数据 | [wilds.mhdb.io](https://docs.wilds.mhdb.io/)（`zh-Hans`，实时拉取）     | 1188 武器 / 179 技能 / 714 防具 / 361 装饰品 / 183 护石（随版本更新；本地快照与之字段完全一致，仅更新时机不同） |
-
-在线实现要点：
-
-- 适配器：`src/api/mhdb-wilds.ts` 并行请求 `skills`、`weapons`、`armor`、`decorations`、`charms`，使用 `p` 投影裁剪字段、`limit/offset` 分页（约 660 KB），并读取 `/version` 作为数据版本；结果映射为 `MhWildsData` 模型。本地快照由同一个适配器生成，因此两种数据源字段、规模完全一致，只是本地不需要每次联网请求。
-- 映射规则：武器 `kind` → 中文武器类型，并保留 `rarity`（≤4 下位 / ≥5 上位）与攻击力（`damage.raw` → `attack`，用于综合评分）；防具 `skills` 中 `kind=armor / group / set` 分别映射为普通技能 / 组技能 / 系列技能归属，并保留 `rank`（`low` / `high`）；装饰品 `kind=armor` → 防具珠、`weapon` → 武器珠；护石 `ranks` 展开为护石条目；防御力取 `defense.base`。
-- 数据同步：`pnpm sync:data` → `scripts/sync-mh-wilds.mjs` → 覆盖 `public/mh-wilds.json`；脚本校验数量、武器 `rarity` / 攻击力、防具 `rank` 通过后才原子替换，失败时保留旧文件。本地快照不会自动更新，需要新数据时手动运行（或接入 CI / 定时任务）。
-- 上下位信息：武器用 `rarity` 区分（≤4 下位、≥5 上位，wilds.mhdb.io 官方 `Rank::guess` 规则），防具用 `rank` 字段；自动配装的「装备范围」筛选即基于这两项。
-- 加载与缓存：`src/composables/useMhWildsData.ts` 按数据源内存缓存，并用请求令牌避免快速切换时旧响应覆盖新数据；在线加载失败会显示错误与「重试」。
-- 数据源一致性：配装存档（`SavedBuild.dataSource`）与「在配装器中调整」交接（`loadout-draft`）都会记录来源；跨数据源的存档禁止读取，跨数据源的自动配装结果会被忽略，避免装备下标错配。
-- 在线 API 已开启 CORS（`Access-Control-Allow-Origin`），浏览器可直连；网络受限时可切回本地数据源继续使用。
+- **同步脚本**：`pnpm sync:data`（`scripts/sync-mh-wilds.mjs`）从 [wilds.mhdb.io](https://docs.wilds.mhdb.io/)（`zh-Hans`）拉取技能 / 武器 / 防具 / 装饰品 / 护石全量数据，经 `src/api/mhdb-wilds.ts` 适配器转换为 `MhWildsData` 后覆盖 `public/mh-wilds.json`；先写临时文件再原子替换，数量 / 武器 `rarity` / 攻击力 / 防具 `rank` 校验通过后才落盘，失败保留旧文件。
+- **更新流程**：需要新数据时手动运行 `pnpm sync:data`，刷新页面（开发）或重新构建（发布）。脚本需要外网访问 `wilds.mhdb.io`，项目运行时不需要联网。
+- **当前规模**：1188 武器 / 179 技能 / 714 防具 / 361 装饰品 / 183 护石，数据版本 `2026-04-15T01:28:18+00:00`，约 390 KB。
+- **数据接口细节**：适配器并行请求 `skills`、`weapons`、`armor`、`decorations`、`charms`，使用 `p` 投影裁剪字段、`limit/offset` 分页（约 660 KB），并读取 `/version`；武器 `kind` → 中文类型并保留 `rarity` / `attack`（`damage.raw`），防具保留 `rank`（`low`/`high`）、`skills` 中 `kind=armor/group/set` 分别映射普通技能 / 组技能 / 系列技能归属；装饰品 `kind=armor` → 防具珠、`weapon` → 武器珠；护石按 `ranks` 展开；防御力取 `defense.base`。
+- **加载与缓存**：`src/api/mh-wilds.ts` 提供带内存缓存的 `loadMhWildsData()`；`useMhWildsData` 在页面间共享同一份数据，加载失败时显示错误与「重试」。
+- **数据更新兼容**：配装存档（`SavedBuild.members`）与「载入配装器」交接（`loadout-draft.members`）会额外保存装备名称快照；重新同步 JSON 后若数组顺序或内容变化，读取时按装备名称还原（找不到对应装备则提示重新配装）。
+- **上下位信息**：武器用 `rarity` 区分（≤4 下位、≥5 上位，wilds.mhdb.io 官方 `Rank::guess` 规则），防具用 `rank` 字段；自动配装的「装备范围」筛选即基于这两项。
 
 ## 配装器（`/builder`）
 
@@ -191,7 +184,7 @@ const greatSwords = data.weapons.filter((weapon) => weapon.type === '大剑')
 - **技能合计**：汇总武器 / 防具 / 护石 / 装饰品技能，显示 `Lv / 上限`、进度条、满级与超额提示；技能按武器 / 防具 / 系列 / 组分类。
 - **系列技能**：同系列 2 件激活 Lv1、4 件激活 Lv2；**组技能**：同组 3 件激活。
 - **统计 / 装备数值**：顶部统计展示武器攻击力、全套防御力、已用孔位 / 总孔位、技能数；「装备数值」区块列出武器名称 + 攻击力，以及 5 件防具各自的名称 + 防御力。
-- **配装存档**：Pinia + localStorage 持久化（`mh-wilds:builds:v1`），支持命名保存、读取、删除，刷新页面不丢失。
+- **配装存档**：Pinia + localStorage 持久化（`mh-wilds:builds:v1`），支持命名保存、读取、删除，刷新页面不丢失；保存时记录装备名称快照，**数据文件更新后读取会按名称自动还原**（旧存档缺少名称快照时按下标读取）。
 - **复制配装**：一键复制装备与技能清单文本，便于分享。
 
 实现结构：

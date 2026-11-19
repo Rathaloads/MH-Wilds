@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, shallowRef, watch } from 'vue'
+import { computed, onMounted, shallowRef } from 'vue'
 import { CopyDocument, FolderOpened, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -9,7 +9,6 @@ import EquipmentCard from '@/components/builder/EquipmentCard.vue'
 import EquipmentDetailDialog from '@/components/builder/EquipmentDetailDialog.vue'
 import SkillSummaryPanel from '@/components/builder/SkillSummaryPanel.vue'
 import SlotBoard from '@/components/builder/SlotBoard.vue'
-import DataSourceSwitch from '@/components/common/DataSourceSwitch.vue'
 import { useLoadout } from '@/composables/useLoadout'
 import { useMhWildsData } from '@/composables/useMhWildsData'
 import { useLoadoutDraftStore } from '@/stores/loadout-draft'
@@ -24,8 +23,9 @@ import {
 import type { ArmorPart } from '@/types/mh-wilds'
 import { formatSkillMap, formatSlotLabel } from '@/utils/mh-format'
 import { rankForRarity } from '@/utils/loadout-calc'
+import { resolveEquipmentSnapshot } from '@/utils/loadout-snapshot'
 
-const { data, error, loading, load, source } = useMhWildsData()
+const { data, error, loading, load } = useMhWildsData()
 const loadoutDraft = useLoadoutDraftStore()
 const {
   weapon,
@@ -57,7 +57,7 @@ const detail = shallowRef<EquipmentDetail | null>(null)
 
 const skillOptions = computed(() => (data.value?.skills ?? []).map((skill) => skill.name))
 
-// ---------- 候选装备（选择弹窗数据源） ----------
+// ---------- 候选装备（选择弹窗列表） ----------
 const weaponPickerItems = computed<PickerItem[]>(() =>
   (data.value?.weapons ?? []).map((item, index) => ({
     index,
@@ -352,19 +352,15 @@ onMounted(async () => {
   const draft = loadoutDraft.consume()
   if (!draft) return
 
-  if (draft.source !== source.value) {
-    ElMessage.warning('自动配装结果来自另一种数据源，已忽略；请切换数据源后重新生成')
+  // 优先按装备名称还原（数据文件更新后下标可能变化），名称缺失时按下标
+  const resolved = draft.members ? resolveEquipmentSnapshot(data.value, draft.members) : null
+  if (draft.members && !resolved) {
+    ElMessage.warning('自动配装结果中的装备在当前数据中不存在（数据可能已更新），已忽略')
     return
   }
 
-  applySelection(draft.selection)
+  applySelection(resolved ?? draft.selection)
   ElMessage.success('已载入自动配装结果，可继续微调')
-})
-
-// 切换数据源后重置配装：两套数据的装备下标不通用
-watch(source, () => {
-  reset()
-  libraryVisible.value = false
 })
 </script>
 
@@ -379,7 +375,6 @@ watch(source, () => {
       </div>
 
       <div class="builder__toolbar-actions">
-        <DataSourceSwitch />
         <el-select
           v-model="skillFilter"
           class="builder__skill-filter"
@@ -408,11 +403,7 @@ watch(source, () => {
 
     <div v-else-if="!data" class="builder__loading">
       <p class="builder__loading-text">
-        {{
-          loading
-            ? `正在加载${source === 'online' ? '在线数据（首次约数秒）' : '本地数据'}…`
-            : '正在准备数据…'
-        }}
+        {{ loading ? '正在加载配装数据…' : '正在准备数据…' }}
       </p>
       <el-skeleton :rows="8" animated />
     </div>
@@ -478,7 +469,7 @@ watch(source, () => {
     <BuildLibraryDialog
       v-model="libraryVisible"
       :selection="currentSelection"
-      :source="source"
+      :data="data"
       @load="handleLoad"
     />
 

@@ -7,7 +7,7 @@ const route = useRoute()
 const navItems = [
   { name: 'home', label: '首页', to: '/' },
   { name: 'builder', label: '配装器', to: '/builder' },
-  { name: 'about', label: '关于', to: '/about' },
+  // { name: 'about', label: '关于', to: '/about' },
 ]
 
 const activePath = computed(() => route.path)

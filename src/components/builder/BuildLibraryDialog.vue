@@ -4,7 +4,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useBuildsStore } from '@/stores/builds'
 import type { LoadoutSelection, SavedBuild } from '@/types/build'
-import { DATA_SOURCE_META, type DataSource } from '@/types/data-source'
+import type { MhWildsData } from '@/types/mh-wilds'
+import { captureEquipmentSnapshot, resolveEquipmentSnapshot } from '@/utils/loadout-snapshot'
 import { formatBuildTime } from '@/utils/mh-format'
 
 const visible = defineModel<boolean>({ required: true })
@@ -12,8 +13,8 @@ const visible = defineModel<boolean>({ required: true })
 const props = defineProps<{
   /** 当前配装快照，用于保存 */
   selection: LoadoutSelection
-  /** 当前数据源，用于标记 / 校验存档 */
-  source: DataSource
+  /** 当前数据，用于生成装备名称快照 / 读取时按名称还原 */
+  data: MhWildsData | null
 }>()
 
 const emit = defineEmits<{
@@ -35,18 +36,31 @@ function save(): void {
     return
   }
 
-  buildsStore.saveBuild(trimmed, props.selection, props.source)
+  const members = props.data ? captureEquipmentSnapshot(props.data, props.selection) : undefined
+  buildsStore.saveBuild(trimmed, props.selection, members)
   name.value = ''
   ElMessage.success('配装已保存')
 }
 
-/** 旧存档没有记录数据源，按本地数据源处理 */
-function buildSourceOf(build: SavedBuild): DataSource {
-  return build.dataSource ?? 'local'
-}
-
+/**
+ * 读取配装：优先按装备名称还原（数据文件更新后下标变化仍可用）；
+ * 旧存档没有名称快照时按下标读取。
+ */
 function load(build: SavedBuild): void {
-  emit('load', build.selection)
+  const data = props.data
+
+  if (!data) {
+    ElMessage.warning('数据加载中，请稍后重试')
+    return
+  }
+
+  const resolved = build.members ? resolveEquipmentSnapshot(data, build.members) : null
+  if (build.members && !resolved) {
+    ElMessage.warning('该配装中的装备在当前数据中不存在（数据可能已更新），请重新配装')
+    return
+  }
+
+  emit('load', resolved ?? build.selection)
   visible.value = false
 }
 
@@ -83,34 +97,20 @@ async function remove(build: SavedBuild): Promise<void> {
         >已保存（{{ buildsStore.sortedBuilds.length }}）</el-divider
       >
 
+      <p class="library__hint">
+        读取时会按装备名称自动还原，数据文件更新后仍可读取；旧存档缺少名称快照时按下标读取。
+      </p>
+
       <ul v-if="buildsStore.sortedBuilds.length" class="library__list">
         <li v-for="build in buildsStore.sortedBuilds" :key="build.id" class="library__item">
           <div class="library__info">
             <span class="library__name">{{ build.name }}</span>
             <span class="library__time">
-              <el-tag
-                size="small"
-                effect="plain"
-                :type="buildSourceOf(build) === source ? 'success' : 'info'"
-              >
-                {{ DATA_SOURCE_META[buildSourceOf(build)].label }}
-              </el-tag>
               {{ formatBuildTime(build.createdAt) }}
             </span>
           </div>
           <div class="library__actions">
-            <el-button
-              size="small"
-              text
-              type="primary"
-              :disabled="buildSourceOf(build) !== source"
-              :title="
-                buildSourceOf(build) !== source ? '该配装保存于另一种数据源，请先切换数据源' : ''
-              "
-              @click="load(build)"
-            >
-              读取
-            </el-button>
+            <el-button size="small" text type="primary" @click="load(build)">读取</el-button>
             <el-button size="small" text type="danger" @click="remove(build)">删除</el-button>
           </div>
         </li>
@@ -125,6 +125,12 @@ async function remove(build: SavedBuild): Promise<void> {
   &__save {
     display: flex;
     gap: $spacing-sm;
+  }
+
+  &__hint {
+    margin: 0 0 $spacing-sm;
+    color: $color-text-placeholder;
+    font-size: 12px;
   }
 
   &__list {

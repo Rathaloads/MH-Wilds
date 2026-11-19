@@ -8,12 +8,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/HomeView.vue'),
     meta: { title: '自动配装' },
   },
-  {
-    path: '/about',
-    name: 'about',
-    component: () => import('@/views/AboutView.vue'),
-    meta: { title: '关于' },
-  },
+  // {
+  //   path: '/about',
+  //   name: 'about',
+  //   component: () => import('@/views/AboutView.vue'),
+  //   meta: { title: '关于' },
+  // },
   {
     path: '/builder',
     name: 'builder',

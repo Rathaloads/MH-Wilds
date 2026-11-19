@@ -2,8 +2,7 @@ import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
 import { cloneSelection, createEmptySelection } from '@/composables/useLoadout'
-import type { LoadoutSelection, SavedBuild } from '@/types/build'
-import type { DataSource } from '@/types/data-source'
+import type { EquipmentSnapshot, LoadoutSelection, SavedBuild } from '@/types/build'
 
 const STORAGE_KEY = 'mh-wilds:builds:v1'
 
@@ -69,14 +68,14 @@ export const useBuildsStore = defineStore('builds', () => {
   function saveBuild(
     name: string,
     selection: LoadoutSelection,
-    dataSource: DataSource = 'local',
+    members?: EquipmentSnapshot,
   ): SavedBuild {
     const build: SavedBuild = {
       id: createBuildId(),
       name: name.trim() || '未命名配装',
       createdAt: Date.now(),
       selection: cloneSelection(selection),
-      dataSource,
+      members,
     }
 
     builds.value = [build, ...builds.value]
